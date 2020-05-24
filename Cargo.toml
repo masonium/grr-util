@@ -1,0 +1,12 @@
+[package]
+name = "grr-util"
+version = "0.1.0"
+authors = ["Mason Smith <masonium@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+grr = {path = "/home/mason/workspace/grr"}
+slotmap = "*"
+itertools = "*"
