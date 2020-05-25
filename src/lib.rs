@@ -1,6 +1,8 @@
-mod shader_manager;
+pub mod shader_manager;
+pub mod window;
 
-pub use shader_manager::{ShaderManager, ShaderDesc};
+pub use shader_manager::{ShaderDesc, ShaderManager};
+pub use window::GrrWindow;
 
 #[cfg(test)]
 mod tests {

@@ -1,10 +1,10 @@
 use grr::ShaderStage;
-use slotmap::{DenseSlotMap, new_key_type};
+use slotmap::{new_key_type, DenseSlotMap};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 // use std::collections::HashSet;
-use std::path::{Path, PathBuf};
 use itertools::process_results;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ShaderSource {
@@ -36,7 +36,7 @@ impl ShaderDesc {
     pub fn from_source<T: AsRef<Path>>(source_path: T, stage: ShaderStage) -> ShaderDesc {
         ShaderDesc {
             source: ShaderSource::SourceFile(source_path.as_ref().to_owned()),
-            stage
+            stage,
         }
     }
 }
@@ -133,10 +133,11 @@ impl<'a> ShaderManager {
     }
     /// Return a raw pipeline if all of the shaders compile and all of
     /// the links are successful.
-    fn load_pipeline(&self,
-                     device: &grr::Device,
-                     shaders: &[ShaderDesc],
-                     ptype: Option<PipelineType>,
+    fn load_pipeline(
+        &self,
+        device: &grr::Device,
+        shaders: &[ShaderDesc],
+        ptype: Option<PipelineType>,
     ) -> Result<(grr::Pipeline, PipelineType), Error> {
         if shaders.len() == 0 {
             return Err(Error::NoShadersToLink);
@@ -172,17 +173,13 @@ impl<'a> ShaderManager {
         };
 
         // delete all of the shaders
-        raw_shaders.iter().for_each(|s| {
-            unsafe {
-                device.delete_shader(*s);
-            }
+        raw_shaders.iter().for_each(|s| unsafe {
+            device.delete_shader(*s);
         });
 
         let plog = unsafe { device.get_pipeline_log(pipeline) };
         match plog {
-            Ok(_) => {
-                Ok((pipeline, pipeline_type))
-            }
+            Ok(_) => Ok((pipeline, pipeline_type)),
             Err(e) => {
                 unsafe {
                     device.delete_pipeline(pipeline);
@@ -190,7 +187,6 @@ impl<'a> ShaderManager {
                 Err(Error::LinkError(e))
             }
         }
-
     }
     /// Create and link a program
     pub fn create_pipeline(
@@ -199,13 +195,14 @@ impl<'a> ShaderManager {
         shaders: &[ShaderDesc],
         ptype: Option<PipelineType>,
     ) -> Result<ManagedPipeline, Error> {
-        self.load_pipeline(device, shaders, ptype).map(|(p, pipeline_type)| {
-            self.pipelines.insert(Pipeline {
-                shaders: shaders.iter().cloned().collect(),
-                pipeline: Cell::new(p),
-                pipeline_type
+        self.load_pipeline(device, shaders, ptype)
+            .map(|(p, pipeline_type)| {
+                self.pipelines.insert(Pipeline {
+                    shaders: shaders.iter().cloned().collect(),
+                    pipeline: Cell::new(p),
+                    pipeline_type,
+                })
             })
-        })
     }
 
     /// Reload all of the shaders associated with the pipeline, and
@@ -214,7 +211,8 @@ impl<'a> ShaderManager {
     pub fn reload_all_pipelines(&self, device: &grr::Device) {
         // Try to re-create every pipeline
         for pipeline in self.pipelines.values() {
-            let new_pipeline_raw = self.load_pipeline(device, &pipeline.shaders, Some(pipeline.pipeline_type));
+            let new_pipeline_raw =
+                self.load_pipeline(device, &pipeline.shaders, Some(pipeline.pipeline_type));
             if let Ok((new_p, _)) = new_pipeline_raw {
                 pipeline.pipeline.replace(new_p);
             }
@@ -247,24 +245,36 @@ impl<'a> ShaderManager {
         self.pipelines.get(pipeline).map(|s| s.pipeline.get())
     }
 
-    fn map_pipeline<T, F: Fn(grr::Pipeline) -> T>(&self, pipeline: ManagedPipeline, f: F) -> Result<T, Error> {
+    fn map_pipeline<T, F: Fn(grr::Pipeline) -> T>(
+        &self,
+        pipeline: ManagedPipeline,
+        f: F,
+    ) -> Result<T, Error> {
         match self.pipelines.get(pipeline) {
-            Some(p) => {
-                Ok(f(p.pipeline.get()))
-            },
-            None => {
-                Err(Error::MissingPipeline)
-            }
+            Some(p) => Ok(f(p.pipeline.get())),
+            None => Err(Error::MissingPipeline),
         }
     }
 
     /// Bind the pipeline.
-    pub fn bind_pipeline(&self, device: &grr::Device, pipeline: ManagedPipeline) -> Result<(), Error> {
-        self.map_pipeline(pipeline, |p| unsafe { device.bind_pipeline(p); })
+    pub fn bind_pipeline(
+        &self,
+        device: &grr::Device,
+        pipeline: ManagedPipeline,
+    ) -> Result<(), Error> {
+        self.map_pipeline(pipeline, |p| unsafe {
+            device.bind_pipeline(p);
+        })
     }
 
     /// Delete teh pipeline.
-    pub fn delete_pipeline(&self, device: &grr::Device, pipeline: ManagedPipeline) -> Result<(), Error> {
-        self.map_pipeline(pipeline, |p| unsafe { device.delete_pipeline(p); })
+    pub fn delete_pipeline(
+        &self,
+        device: &grr::Device,
+        pipeline: ManagedPipeline,
+    ) -> Result<(), Error> {
+        self.map_pipeline(pipeline, |p| unsafe {
+            device.delete_pipeline(p);
+        })
     }
 }

@@ -10,3 +10,4 @@ edition = "2018"
 grr = {path = "/home/mason/workspace/grr"}
 slotmap = "*"
 itertools = "*"
+glutin = "*"
