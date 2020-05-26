@@ -1,4 +1,4 @@
-use grr::ShaderStage;
+use grr::{ShaderStage, ShaderFlags, PipelineFlags};
 use slotmap::{new_key_type, DenseSlotMap};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -115,22 +115,22 @@ impl<'a> ShaderManager {
 
         let shader = unsafe {
             device
-                .compile_shader(desc.stage, s.as_bytes())
-                .map_err(|e| Error::GrrError(e))?
+                .create_shader(desc.stage, s.as_bytes(), ShaderFlags::empty())
         };
 
-        let shader_log = unsafe { device.get_shader_compile_log(shader) };
-        match shader_log {
-            Ok(_) => Ok(shader),
-            Err(error_log) => {
-                unsafe {
-                    device.delete_shader(shader);
+        match shader {
+            Ok(s) => Ok(s),
+            Err(grr::Error::CompileError(s)) => {
+                let shader_log = unsafe { device.get_shader_log(s) };
+                unsafe { 
+                    device.delete_shader(s);
                 }
-                println!("{}", error_log);
-                Err(Error::CompilationError(desc.source.clone(), error_log))
-            }
+                Err(Error::CompilationError(desc.source.clone(), shader_log.unwrap_or_default()))
+            },
+            Err(e) => Err(Error::GrrError(e))
         }
     }
+
     /// Return a raw pipeline if all of the shaders compile and all of
     /// the links are successful.
     fn load_pipeline(
@@ -168,8 +168,7 @@ impl<'a> ShaderManager {
 
         let pipeline = unsafe {
             device
-                .create_pipeline(&raw_shaders)
-                .map_err(|x| Error::GrrError(x))?
+                .create_pipeline(&raw_shaders, PipelineFlags::empty())
         };
 
         // delete all of the shaders
@@ -177,15 +176,16 @@ impl<'a> ShaderManager {
             device.delete_shader(*s);
         });
 
-        let plog = unsafe { device.get_pipeline_log(pipeline) };
-        match plog {
-            Ok(_) => Ok((pipeline, pipeline_type)),
-            Err(e) => {
+        match pipeline {
+            Ok(p) => Ok((p, pipeline_type)),
+            Err(grr::Error::LinkError(p)) => {
+                let plog = unsafe { device.get_pipeline_log(p) };
                 unsafe {
-                    device.delete_pipeline(pipeline);
+                    device.delete_pipeline(p);
                 }
-                Err(Error::LinkError(e))
-            }
+                Err(Error::LinkError(plog.unwrap_or_default()))
+            },
+            Err(e) => Err(Error::GrrError(e))
         }
     }
     /// Create and link a program
