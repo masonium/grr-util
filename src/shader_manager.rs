@@ -1,4 +1,4 @@
-use grr::{ShaderStage, ShaderFlags, PipelineFlags};
+use grr::{PipelineFlags, ShaderFlags, ShaderStage};
 use slotmap::{new_key_type, DenseSlotMap};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -113,21 +113,22 @@ impl<'a> ShaderManager {
             ShaderSource::Literal(s) => s,
         };
 
-        let shader = unsafe {
-            device
-                .create_shader(desc.stage, s.as_bytes(), ShaderFlags::empty())
-        };
+        let shader =
+            unsafe { device.create_shader(desc.stage, s.as_bytes(), ShaderFlags::empty()) };
 
         match shader {
             Ok(s) => Ok(s),
             Err(grr::Error::CompileError(s)) => {
                 let shader_log = unsafe { device.get_shader_log(s) };
-                unsafe { 
+                unsafe {
                     device.delete_shader(s);
                 }
-                Err(Error::CompilationError(desc.source.clone(), shader_log.unwrap_or_default()))
-            },
-            Err(e) => Err(Error::GrrError(e))
+                Err(Error::CompilationError(
+                    desc.source.clone(),
+                    shader_log.unwrap_or_default(),
+                ))
+            }
+            Err(e) => Err(Error::GrrError(e)),
         }
     }
 
@@ -166,10 +167,7 @@ impl<'a> ShaderManager {
 
         let raw_shaders: Vec<_> = process_results(raw_shaders, |iter| iter.collect())?;
 
-        let pipeline = unsafe {
-            device
-                .create_pipeline(&raw_shaders, PipelineFlags::empty())
-        };
+        let pipeline = unsafe { device.create_pipeline(&raw_shaders, PipelineFlags::empty()) };
 
         // delete all of the shaders
         raw_shaders.iter().for_each(|s| unsafe {
@@ -184,8 +182,8 @@ impl<'a> ShaderManager {
                     device.delete_pipeline(p);
                 }
                 Err(Error::LinkError(plog.unwrap_or_default()))
-            },
-            Err(e) => Err(Error::GrrError(e))
+            }
+            Err(e) => Err(Error::GrrError(e)),
         }
     }
     /// Create and link a program

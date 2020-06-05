@@ -11,3 +11,6 @@ grr = {path = "/home/mason/workspace/grr"}
 slotmap = "*"
 itertools = "*"
 glutin = "*"
+num-traits = "*"
+nalgebra = "*"
+ndarray = "*"
