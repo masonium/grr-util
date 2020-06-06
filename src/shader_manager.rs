@@ -49,7 +49,7 @@ pub enum PipelineType {
 }
 
 impl PipelineType {
-    fn is_compatible(&self, s: ShaderStage) -> bool {
+    fn is_compatible(self, s: ShaderStage) -> bool {
         use ShaderStage::*;
         match &self {
             PipelineType::Graphics => match s {
@@ -89,6 +89,7 @@ pub enum Error {
 
 /// The shader manager keeps track of all shader objects and
 /// pipelines, and managing the relationship between them.
+#[derive(Default)]
 pub struct ShaderManager {
     //shader_descs: HashSet<ShaderDesc>,
     pipelines: DenseSlotMap<ManagedPipeline, Pipeline>,
@@ -107,8 +108,7 @@ impl<'a> ShaderManager {
     fn load_shader(&self, device: &grr::Device, desc: &ShaderDesc) -> Result<grr::Shader, Error> {
         let s = match desc.source.clone() {
             ShaderSource::SourceFile(path) => {
-                let b = std::fs::read_to_string(&path).map_err(|_| Error::FileError(path))?;
-                b
+                std::fs::read_to_string(&path).map_err(|_| Error::FileError(path))?
             }
             ShaderSource::Literal(s) => s,
         };
@@ -140,7 +140,7 @@ impl<'a> ShaderManager {
         shaders: &[ShaderDesc],
         ptype: Option<PipelineType>,
     ) -> Result<(grr::Pipeline, PipelineType), Error> {
-        if shaders.len() == 0 {
+        if shaders.is_empty() {
             return Err(Error::NoShadersToLink);
         }
 
@@ -196,7 +196,7 @@ impl<'a> ShaderManager {
         self.load_pipeline(device, shaders, ptype)
             .map(|(p, pipeline_type)| {
                 self.pipelines.insert(Pipeline {
-                    shaders: shaders.iter().cloned().collect(),
+                    shaders: shaders.to_vec(),
                     pipeline: Cell::new(p),
                     pipeline_type,
                 })
@@ -232,10 +232,7 @@ impl<'a> ShaderManager {
     /// Verify that the pipleine type matches the shader list.
     /// Assumes that there is at least one shader in the list.
     fn verify_pipeline_type(&self, descs: &[ShaderDesc], ptype: PipelineType) -> bool {
-        descs
-            .iter()
-            .find(|&x| !ptype.is_compatible(x.stage))
-            .is_some()
+        descs.iter().any(|x| !ptype.is_compatible(x.stage))
     }
 
     /// return a handle to the raw grr::Pipeline

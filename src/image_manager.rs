@@ -102,6 +102,7 @@ impl From<ImageId> for ImageOrViewId {
 }
 
 /// Create and bind images, with caching for image properties.
+#[derive(Default)]
 pub struct ImageManager {
     images: DenseSlotMap<ImageId, Image>,
     views: DenseSlotMap<ImageViewId, ImageView>,
