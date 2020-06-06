@@ -25,10 +25,14 @@ impl Image {
     }
 }
 
+/// Internal structure information for texture that specifically
+/// represents an image view.
 struct ImageView {
     handle: grr::ImageView,
+
     #[allow(unused)]
-    orig_handle: grr::Image,
+    orig_handle: ImageId,
+
     #[allow(unused)]
     image_view_type: grr::ImageViewType,
     #[allow(unused)]
@@ -81,6 +85,22 @@ impl From<grr::Error> for Error {
     }
 }
 
+pub enum ImageOrViewId {
+    Image(ImageId),
+    View(ImageViewId),
+}
+
+impl From<ImageViewId> for ImageOrViewId {
+    fn from(view_id: ImageViewId) -> ImageOrViewId {
+        ImageOrViewId::View(view_id)
+    }
+}
+impl From<ImageId> for ImageOrViewId {
+    fn from(image_id: ImageId) -> ImageOrViewId {
+        ImageOrViewId::Image(image_id)
+    }
+}
+
 /// Create and bind images, with caching for image properties.
 pub struct ImageManager {
     images: DenseSlotMap<ImageId, Image>,
@@ -113,11 +133,7 @@ impl ImageManager {
         }))
     }
 
-    pub fn create_image_from_vector_data<
-        PC: TexelBaseType,
-        D: TextureDim,
-        CD: TextureComponentDim,
-    >(
+    pub fn create_image_from_ndarray<PC: TexelBaseType, D: TextureDim, CD: TextureComponentDim>(
         &mut self,
         device: &grr::Device,
         data: &ndarray::Array<nalgebra::VectorN<PC, CD>, D>,
@@ -127,8 +143,6 @@ impl ImageManager {
     where
         nalgebra::DefaultAllocator: nalgebra::base::allocator::Allocator<PC, CD>,
     {
-        //let _num_components = CD::try_to_usize().ok_or(Error::BadDataLayout)?;
-
         let d = data.as_slice().ok_or(Error::ImproperDataFormat)?;
 
         let image_type = data.raw_dim().image_type();
@@ -204,7 +218,7 @@ impl ImageManager {
 
         Ok(self.views.insert(ImageView {
             handle,
-            orig_handle: image.handle,
+            orig_handle: image_id,
             image_view_type,
             num_layers,
             num_mipmap_levels: image.num_mipmap_levels,
@@ -212,7 +226,8 @@ impl ImageManager {
         }))
     }
 
-    pub fn get_texture_data<T: TexelBaseType>(
+    /// Return the texture as a vector.
+    pub fn get_texture_vec<T: TexelBaseType>(
         &self,
         device: &grr::Device,
         image_id: ImageId,
@@ -221,6 +236,7 @@ impl ImageManager {
             .images
             .get(image_id)
             .ok_or(Error::MissingImageId(image_id))?;
+
         let num_texels = image.image_type.num_texels() * image.format.num_components() as usize;
         let mut texture_data: Vec<T> = Vec::with_capacity(num_texels);
         texture_data.resize(num_texels, T::zero());
@@ -280,11 +296,20 @@ impl ImageManager {
         }
     }
 
-    /// Bind the image view to storage.
+    /// Bind the image view to image storage.
     pub fn bind_storage(&mut self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
         unsafe {
             if let Some(v) = self.views.get(view) {
                 device.bind_storage_image_views(bind_point, &[v.handle]);
+            }
+        }
+    }
+
+    /// Bind the image view to a sampler.
+    pub fn bind(&mut self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
+        unsafe {
+            if let Some(v) = self.views.get(view) {
+                device.bind_image_views(bind_point, &[v.handle]);
             }
         }
     }
