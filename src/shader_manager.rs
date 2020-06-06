@@ -265,6 +265,18 @@ impl<'a> ShaderManager {
         })
     }
 
+    pub fn bind_uniform_constants(
+        &self,
+        device: &grr::Device,
+        pipeline: ManagedPipeline,
+        first: u32,
+        constants: &[grr::Constant],
+    ) -> Result<(), Error> {
+        self.map_pipeline(pipeline, |p| unsafe {
+            device.bind_uniform_constants(p, first, constants)
+        })
+    }
+
     /// Delete teh pipeline.
     pub fn delete_pipeline(
         &self,
@@ -274,5 +286,13 @@ impl<'a> ShaderManager {
         self.map_pipeline(pipeline, |p| unsafe {
             device.delete_pipeline(p);
         })
+    }
+
+    pub fn clear(&mut self, device: &grr::Device) {
+        for (_, p) in self.pipelines.drain() {
+            unsafe {
+                device.delete_pipeline(p.pipeline.into_inner());
+            }
+        }
     }
 }
