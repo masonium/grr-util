@@ -87,10 +87,10 @@ pub fn format_from_base_and_layout(
     layout: grr::FormatLayout,
 ) -> Option<grr::Format> {
     match (bf, layout) {
-        (grr::BaseFormat::R, grr::FormatLayout::F32) => Some(grr::Format::R32F),
-        (grr::BaseFormat::RG, grr::FormatLayout::F32) => Some(grr::Format::RG32F),
-        (grr::BaseFormat::RGB, grr::FormatLayout::F32) => Some(grr::Format::RGB32F),
-        (grr::BaseFormat::RGBA, grr::FormatLayout::F32) => Some(grr::Format::RGBA32F),
+        (grr::BaseFormat::R, grr::FormatLayout::F32) => Some(grr::Format::R32_SFLOAT),
+        (grr::BaseFormat::RG, grr::FormatLayout::F32) => Some(grr::Format::R32G32_SFLOAT),
+        (grr::BaseFormat::RGB, grr::FormatLayout::F32) => Some(grr::Format::R32G32B32_SFLOAT),
+        (grr::BaseFormat::RGBA, grr::FormatLayout::F32) => Some(grr::Format::R32G32B32A32_SFLOAT),
         _ => None,
     }
 }
@@ -108,25 +108,9 @@ pub fn image_type_to_view_type(img_type: grr::ImageType) -> grr::ImageViewType {
 
 /// Given an `ImageType` return an `Extent` object that fully encompasses it.
 pub fn image_type_to_full_extent(img_type: grr::ImageType) -> grr::Extent {
-    match img_type {
-        grr::ImageType::D1 { width, .. } => grr::Extent {
-            width,
-            height: 1,
-            depth: 1,
-        },
-        grr::ImageType::D2 { width, height, .. } => grr::Extent {
-            width,
-            height,
-            depth: 1,
-        },
-        grr::ImageType::D3 {
-            width,
-            height,
-            depth,
-        } => grr::Extent {
-            width,
-            height,
-            depth,
-        },
+    grr::Extent {
+	width: img_type.width(),
+	height: img_type.height(),
+	depth: img_type.depth()
     }
 }
