@@ -14,6 +14,7 @@ pub struct GrrWindow {
     pub device: Device,
 }
 
+/// Headless OpenGL context.
 pub struct GrrHeadless {
     pub window: Context<PossiblyCurrent>,
     pub event_loop: EventLoop<()>,
@@ -22,7 +23,12 @@ pub struct GrrHeadless {
 
 impl GrrWindow {
     // Build a window with the given width and height
-    pub fn build_window(title: &str, w: f32, h: f32) -> Result<GrrWindow, Box<dyn Error>> {
+    pub fn build_window(
+        title: &str,
+        w: f32,
+        h: f32,
+        samples: impl Into<Option<u16>>,
+    ) -> Result<GrrWindow, Box<dyn Error>> {
         let event_loop = EventLoop::new();
         let wb = WindowBuilder::new()
             .with_title(title)
@@ -31,13 +37,15 @@ impl GrrWindow {
                 height: h,
             });
         let window = unsafe {
-            glutin::ContextBuilder::new()
+            let mut cx = glutin::ContextBuilder::new()
                 .with_vsync(false)
                 .with_srgb(false)
-                .with_gl_debug_flag(true)
-                .build_windowed(wb, &event_loop)?
-                .make_current()
-                .unwrap()
+                .with_gl_debug_flag(true);
+
+            if let Some(ms) = samples.into() {
+                cx = cx.with_multisampling(ms);
+            }
+            cx.build_windowed(wb, &event_loop)?.make_current().unwrap()
         };
 
         let device = unsafe {
