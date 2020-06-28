@@ -109,8 +109,8 @@ pub fn image_type_to_view_type(img_type: grr::ImageType) -> grr::ImageViewType {
 /// Given an `ImageType` return an `Extent` object that fully encompasses it.
 pub fn image_type_to_full_extent(img_type: grr::ImageType) -> grr::Extent {
     grr::Extent {
-	width: img_type.width(),
-	height: img_type.height(),
-	depth: img_type.depth()
+        width: img_type.width(),
+        height: img_type.height(),
+        depth: img_type.depth(),
     }
 }

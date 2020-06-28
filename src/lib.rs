@@ -1,5 +1,6 @@
 pub mod image_format;
 pub mod image_manager;
+pub mod screenshot;
 pub mod shader_manager;
 pub mod window;
 

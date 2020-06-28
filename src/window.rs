@@ -6,6 +6,8 @@ use glutin::{Context, PossiblyCurrent, WindowedContext};
 use grr::Device;
 use std::error::Error;
 
+/// Window with an OpenGL / `grr` device and event loop and OpenGL
+/// debugging turned on.
 pub struct GrrWindow {
     pub window: WindowedContext<PossiblyCurrent>,
     pub event_loop: EventLoop<()>,
@@ -20,10 +22,10 @@ pub struct GrrHeadless {
 
 impl GrrWindow {
     // Build a window with the given width and height
-    pub fn build_window(w: f32, h: f32) -> Result<GrrWindow, Box<dyn Error>> {
+    pub fn build_window(title: &str, w: f32, h: f32) -> Result<GrrWindow, Box<dyn Error>> {
         let event_loop = EventLoop::new();
         let wb = WindowBuilder::new()
-            .with_title("grr - demo")
+            .with_title(title)
             .with_inner_size(LogicalSize {
                 width: w,
                 height: h,
@@ -69,6 +71,9 @@ impl GrrWindow {
         })
     }
 
+    /// Return the individual components used to construct the window.
+    ///
+    /// Unnecessary with winit 0.22+ and the use of run_return.
     pub fn drain(self) -> (WindowedContext<PossiblyCurrent>, EventLoop<()>, Device) {
         (self.window, self.event_loop, self.device)
     }
