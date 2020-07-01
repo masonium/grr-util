@@ -7,7 +7,7 @@ pub mod window;
 pub use image_manager::ImageManager;
 pub use num_traits::Zero;
 pub use shader_manager::{ShaderDesc, ShaderManager};
-pub use window::{GrrHeadless, GrrWindow};
+pub use window::{GrrHeadless, GrrWindow, GrrBuilder};
 
 #[cfg(test)]
 mod tests {
