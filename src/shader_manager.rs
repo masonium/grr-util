@@ -33,9 +33,15 @@ pub struct ShaderDesc {
 }
 
 impl ShaderDesc {
-    pub fn from_source<T: AsRef<Path>>(source_path: T, stage: ShaderStage) -> ShaderDesc {
+    pub fn from_file<T: AsRef<Path>>(source_path: T, stage: ShaderStage) -> ShaderDesc {
         ShaderDesc {
             source: ShaderSource::SourceFile(source_path.as_ref().to_owned()),
+            stage,
+        }
+    }
+    pub fn from_raw(source: String, stage: ShaderStage) -> ShaderDesc {
+        ShaderDesc {
+            source: ShaderSource::Literal(source),
             stage,
         }
     }
