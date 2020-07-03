@@ -49,56 +49,65 @@ pub struct GrrBuilder {
 
 impl GrrBuilder {
     pub fn new() -> GrrBuilder {
-	GrrBuilder {
-	    resizable: true,
-	    samples: None,
-	    vsync: false,
-	    srgb: false,
-	    gl_debug: Some(grr::DebugReport::WARNING | grr::DebugReport::ERROR | grr::DebugReport::PERFORMANCE_WARNING),
-	}
+        GrrBuilder {
+            resizable: true,
+            samples: None,
+            vsync: false,
+            srgb: false,
+            gl_debug: Some(
+                grr::DebugReport::WARNING
+                    | grr::DebugReport::ERROR
+                    | grr::DebugReport::PERFORMANCE_WARNING,
+            ),
+        }
     }
 
     pub fn resizeable(self, b: bool) -> GrrBuilder {
-	GrrBuilder { resizable: b, ..self }
+        GrrBuilder {
+            resizable: b,
+            ..self
+        }
     }
     pub fn multisamples(self, ns: impl Into<Option<u16>>) -> GrrBuilder {
-	GrrBuilder { samples: ns.into(), ..self }
+        GrrBuilder {
+            samples: ns.into(),
+            ..self
+        }
     }
     pub fn vsync(self, v: bool) -> GrrBuilder {
-	GrrBuilder { vsync: v, ..self }
+        GrrBuilder { vsync: v, ..self }
     }
     pub fn srgb(self, s: bool) -> GrrBuilder {
-	GrrBuilder { srgb: s, ..self }
+        GrrBuilder { srgb: s, ..self }
     }
     pub fn gl_debug(self, d: impl Into<Option<grr::DebugReport>>) -> GrrBuilder {
-	GrrBuilder { gl_debug: d.into(), ..self }
+        GrrBuilder {
+            gl_debug: d.into(),
+            ..self
+        }
     }
 
     fn debug(&self) -> grr::Debug<grr::DebugCallback> {
-	if let Some(flags) = self.gl_debug {
+        if let Some(flags) = self.gl_debug {
             grr::Debug::Enable {
-		callback: |report, source, dtype, id, msg| {
+                callback: |report, source, dtype, id, msg| {
                     println!(
-			"{:8} {:?} ({:?}/{:?}): {:?}",
-			id, report, source, dtype, msg
+                        "{:8} {:?} ({:?}/{:?}): {:?}",
+                        id, report, source, dtype, msg
                     );
-		},
-		flags: flags,
+                },
+                flags: flags,
             }
-	} else {
-	    grr::Debug::Disable
-	}
+        } else {
+            grr::Debug::Disable
+        }
     }
 
-    pub fn build_windowed(self,
-			  title: &str,
-			  w: f32,
-			  h: f32,
-    ) -> Result<GrrWindow, Box<dyn Error>> {
+    pub fn build_windowed(self, title: &str, w: f32, h: f32) -> Result<GrrWindow, Box<dyn Error>> {
         let event_loop = EventLoop::new();
         let wb = WindowBuilder::new()
             .with_title(title)
-	    .with_resizable(self.resizable)
+            .with_resizable(self.resizable)
             .with_inner_size(LogicalSize {
                 width: w,
                 height: h,
@@ -110,9 +119,9 @@ impl GrrBuilder {
                 .with_gl_debug_flag(self.gl_debug.is_some());
 
             if let Some(ms) = self.samples {
-		if ms > 0 {
+                if ms > 0 {
                     cx = cx.with_multisampling(ms as u16);
-		}
+                }
             }
             cx.build_windowed(wb, &event_loop)?.make_current().unwrap()
         };
@@ -120,7 +129,7 @@ impl GrrBuilder {
         let device = unsafe {
             Device::new(
                 |symbol| window.get_proc_address(symbol) as *const _,
-		self.debug()
+                self.debug(),
             )
         };
 
@@ -139,14 +148,14 @@ impl GrrBuilder {
                 .with_srgb(self.srgb)
                 .with_gl_debug_flag(self.gl_debug.is_some())
                 .build_surfaceless(&event_loop)?
-            .make_current()
+                .make_current()
                 .unwrap()
         };
 
         let device = unsafe {
             Device::new(
                 |symbol| window.get_proc_address(symbol) as *const _,
-		self.debug()
+                self.debug(),
             )
         };
 
