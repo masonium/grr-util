@@ -19,3 +19,6 @@ gl = "*"
 image = "*"
 thiserror = "*"
 palette = "*"
+imgui = "*"
+grr-imgui = {path = "/home/mason/workspace/grr-imgui" }
+imgui-winit-support = "*"
