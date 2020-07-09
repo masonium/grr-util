@@ -5,11 +5,24 @@ use std::cell::Cell;
 // use std::collections::HashSet;
 use itertools::process_results;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ShaderSource {
     SourceFile(PathBuf),
     Literal(String),
+}
+
+impl std::fmt::Display for ShaderSource {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+	match self {
+	    Self::SourceFile(p) => write!(fmt, "SourcePath({:?})", p),
+	    Self::Literal(s) => {
+		let st: &str = &s;
+		write!(fmt, "Literal(lines={})", st.chars().take(100).collect::<String>())
+	    }
+	}
+    }
 }
 
 new_key_type! {
@@ -81,15 +94,30 @@ struct Pipeline {
     shaders: Vec<ShaderDesc>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Error, Debug, Clone)]
 pub enum Error {
-    GrrError(grr::Error),
+    #[error("internal grr::Error")]
+    GrrError(#[from] grr::Error),
+
+    #[error("failed to compiler shader source {0}: {1}")]
     CompilationError(ShaderSource, String),
+
+    #[error("empty shader list")]
     NoShadersToLink,
+
+    #[error("trying to link uncompiled shader")]
     UncompiledShader,
+
+    #[error("linking incompatible shader")]
     IncompatibleShaderTypes,
+
+    #[error("Cannot find pipeline")]
     MissingPipeline,
+
+    #[error("failed to link pipelines: {0}")]
     LinkError(String),
+
+    #[error("internal file error from {0}")]
     FileError(PathBuf),
 }
 
