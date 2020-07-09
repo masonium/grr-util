@@ -20,7 +20,7 @@ pub fn save_framebuffer_rgba<P: AsRef<Path>>(
                     layers: 1,
                     samples: 1,
                 },
-                grr::Format::R8G8B8A8_UNORM,
+                grr::Format::R8G8B8A8_SRGB,
                 1,
             )
             .unwrap()
@@ -42,6 +42,7 @@ pub fn save_framebuffer_rgba<P: AsRef<Path>>(
     buffer_data.resize(pixel_data_size, 0);
 
     unsafe {
+	// blit to the target, non-multisample buffer
         device.blit(
             src_framebuffer,
             region,
@@ -57,6 +58,7 @@ pub fn save_framebuffer_rgba<P: AsRef<Path>>(
 
         device.bind_read_framebuffer(fb);
 
+	// copy from that framebuffer to host memory
         device.copy_attachment_to_host(
             region,
             grr::SubresourceLayout {
