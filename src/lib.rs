@@ -4,16 +4,10 @@ pub mod mesh;
 pub mod screenshot;
 pub mod shader_manager;
 pub mod window;
+pub mod color;
 
 pub use image_manager::ImageManager;
 pub use num_traits::Zero;
 pub use shader_manager::{ShaderDesc, ShaderManager};
 pub use window::{GrrBuilder, GrrHeadless, GrrWindow};
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub use color::{hex_constant_rgb, hex_constant_rgba};
