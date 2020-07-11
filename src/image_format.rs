@@ -91,6 +91,10 @@ pub fn format_from_base_and_layout(
         (grr::BaseFormat::RG, grr::FormatLayout::F32) => Some(grr::Format::R32G32_SFLOAT),
         (grr::BaseFormat::RGB, grr::FormatLayout::F32) => Some(grr::Format::R32G32B32_SFLOAT),
         (grr::BaseFormat::RGBA, grr::FormatLayout::F32) => Some(grr::Format::R32G32B32A32_SFLOAT),
+        (grr::BaseFormat::R, grr::FormatLayout::U8) => Some(grr::Format::R8_UNORM),
+        (grr::BaseFormat::RG, grr::FormatLayout::U8) => Some(grr::Format::R8G8_UNORM),
+        (grr::BaseFormat::RGB, grr::FormatLayout::U8) => Some(grr::Format::R8G8B8_UNORM),
+        (grr::BaseFormat::RGBA, grr::FormatLayout::U8) => Some(grr::Format::R8G8B8A8_UNORM),
         _ => None,
     }
 }

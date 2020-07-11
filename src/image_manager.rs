@@ -2,6 +2,7 @@
 use crate::image_format::*;
 use grr::Object;
 use slotmap::{new_key_type, DenseSlotMap};
+use thiserror::Error;
 
 new_key_type! {
     pub struct ImageId;
@@ -50,10 +51,10 @@ impl ImageView {
 }
 
 /// Errors from `ImageManager`
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// Internal `grr` error
-    GrrError(grr::Error),
+    GrrError(#[source] grr::Error),
     MissingImageId(ImageId),
     BadDataLayout,
     ImproperDataFormat,
@@ -66,15 +67,6 @@ impl std::fmt::Display for Error {
             Error::MissingImageId(_) => write!(f, "MisisngImageId"),
             Error::BadDataLayout => write!(f, "BadDataLayout"),
             Error::ImproperDataFormat => write!(f, "ImproperDataFormat"),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Error::GrrError(e) => Some(e),
-            _ => None,
         }
     }
 }
