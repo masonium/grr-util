@@ -22,21 +22,25 @@ impl<'device> AABB<'device> {
         with_tex: bool,
     ) -> Result<AABB<'device>, grr::Error> {
         let index: [u8; 36] = [
-            5u8, 4, 1, 1, 4, 0, // bottom
-            0, 2, 1, 1, 2, 3,  // left
-	    1, 3, 5, 5, 3, 7,  // front
-	    4, 5, 6, 6, 5, 7,  // right
-	    0, 4, 2, 2, 4, 6,  // back
-	    2, 6, 3, 3, 6, 7, // top
+            0, 1, 2, 2, 1, 3, // back
+	    4, 5, 6, 6, 5, 7, // front
+
+            8, 9, 10, 10, 9, 11, // left
+	    12, 13, 14, 14, 13, 15, // right
+
+            16, 17, 18, 18, 17, 19, // bottom
+	    20, 21, 22, 22, 21, 23, // top
+
         ];
         let ibuff = unsafe {
             device.create_buffer_from_host(&index, grr::MemoryFlags::empty())?
         };
         let mut v = vec![
             V3::new(-half_widths.x, -half_widths.y, -half_widths.z),
-            V3::new(half_widths.x, -half_widths.y, -half_widths.z),
             V3::new(-half_widths.x, half_widths.y, -half_widths.z),
+            V3::new(half_widths.x, -half_widths.y, -half_widths.z),
             V3::new(half_widths.x, half_widths.y, -half_widths.z),
+
             V3::new(-half_widths.x, -half_widths.y, half_widths.z),
             V3::new(half_widths.x, -half_widths.y, half_widths.z),
             V3::new(-half_widths.x, half_widths.y, half_widths.z),

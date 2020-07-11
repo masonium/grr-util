@@ -18,7 +18,7 @@ impl<'device> Quad<'device> {
         };
         let ibuff = unsafe {
             device.create_buffer_from_host(
-                grr::as_u8_slice(&[0u32, 1, 2, 0, 2, 3]),
+                grr::as_u8_slice(&[0u32, 2, 1, 0, 3, 2]),
                 grr::MemoryFlags::empty(),
             )?
         };
