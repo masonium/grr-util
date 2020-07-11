@@ -103,6 +103,7 @@ pub struct GrrBuilder {
     samples: Option<u16>,
     vsync: bool,
     srgb: bool,
+    visible: bool,
     gl_debug: Option<grr::DebugReport>,
 }
 
@@ -110,6 +111,7 @@ impl GrrBuilder {
     pub fn new() -> GrrBuilder {
         GrrBuilder {
             resizable: true,
+	    visible: true,
             samples: None,
             vsync: false,
             srgb: false,
@@ -121,7 +123,14 @@ impl GrrBuilder {
         }
     }
 
-    pub fn resizeable(self, b: bool) -> GrrBuilder {
+    pub fn visible(self, b: bool) -> GrrBuilder {
+	GrrBuilder {
+	    visible: b,
+	    ..self
+	}
+    }
+
+    pub fn resizable(self, b: bool) -> GrrBuilder {
         GrrBuilder {
             resizable: b,
             ..self
@@ -167,6 +176,7 @@ impl GrrBuilder {
         let wb = WindowBuilder::new()
             .with_title(title)
             .with_resizable(self.resizable)
+	    .with_visible(self.visible)
             .with_inner_size(LogicalSize {
                 width: w,
                 height: h,
