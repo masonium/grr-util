@@ -1,6 +1,8 @@
 //! GrrVertex
 use grr::VertexFormat;
-use nalgebra::{Vector1, Vector2, Vector3, Vector4, Point1, Point2, Point3, Point4, Matrix2, Matrix3, Matrix4};
+use nalgebra::{
+    Matrix2, Matrix3, Matrix4, Point1, Point2, Point3, Point4, Vector1, Vector2, Vector3, Vector4,
+};
 
 /// `GrrVertex` contains utility methods that make it easier to create
 /// vertex arrays and a vertex buffer of this vertex.
@@ -12,12 +14,12 @@ pub trait GrrVertex: Sized {
     fn attribs(binding: u32, location_start: u32) -> Vec<grr::VertexAttributeDesc>;
 
     fn view(buffer: grr::Buffer, input_rate: grr::InputRate) -> grr::VertexBufferView {
-	grr::VertexBufferView {
-	    buffer,
-	    input_rate,
-	    offset: 0,
-	    stride: std::mem::size_of::<Self>() as _
-	}
+        grr::VertexBufferView {
+            buffer,
+            input_rate,
+            offset: 0,
+            stride: std::mem::size_of::<Self>() as _,
+        }
     }
 }
 
@@ -25,34 +27,34 @@ pub trait GrrVertexField: Sized {
     const COMPONENT_SIZE: u32 = std::mem::size_of::<Self>() as _;
 
     fn size() -> u32 {
-	std::mem::size_of::<Self>() as _
+        std::mem::size_of::<Self>() as _
     }
-    fn format() -> (VertexFormat, usize) ;
+    fn format() -> (VertexFormat, usize);
 }
 
 /// Implement `GrrVertexField` for a simple field, mapping to only one
 /// location.
 macro_rules! impl_field {
     ($ty: ty, $format: ident) => {
-	impl GrrVertexField for $ty {
-	    fn format() -> (VertexFormat, usize) {
-		(VertexFormat::$format, 1)
-	    }
-	}
-    }
+        impl GrrVertexField for $ty {
+            fn format() -> (VertexFormat, usize) {
+                (VertexFormat::$format, 1)
+            }
+        }
+    };
 }
 
 /// Implement `GrrVertexField` for a matrix field, which spans
 /// multiple locations.
 macro_rules! impl_matrix_field {
     ($ty: ty, $format: ident, $comp_size: literal, $len: literal) => {
-	impl GrrVertexField for $ty {
-	    const COMPONENT_SIZE: u32 = $comp_size;
-	    fn format() -> (VertexFormat, usize) {
-		(VertexFormat::$format, $len)
-	    }
-	}
-    }
+        impl GrrVertexField for $ty {
+            const COMPONENT_SIZE: u32 = $comp_size;
+            fn format() -> (VertexFormat, usize) {
+                (VertexFormat::$format, $len)
+            }
+        }
+    };
 }
 
 impl_field!(f32, X32Float);
@@ -92,22 +94,22 @@ impl_matrix_field!([[f32; 4]; 4], Xyzw32Float, 16, 4);
 
 impl<S: palette::rgb::RgbStandard> GrrVertexField for palette::rgb::Rgb<S, u8> {
     fn format() -> (VertexFormat, usize) {
-	(VertexFormat::Xyz8Unorm, 1)
+        (VertexFormat::Xyz8Unorm, 1)
     }
 }
 impl<S: palette::rgb::RgbStandard> GrrVertexField for palette::rgb::Rgba<S, u8> {
     fn format() -> (VertexFormat, usize) {
-	(VertexFormat::Xyzw8Unorm, 1)
+        (VertexFormat::Xyzw8Unorm, 1)
     }
 }
 
 impl<S: palette::rgb::RgbStandard> GrrVertexField for palette::rgb::Rgb<S, f32> {
     fn format() -> (VertexFormat, usize) {
-	(VertexFormat::Xyz32Float, 1)
+        (VertexFormat::Xyz32Float, 1)
     }
 }
 impl<S: palette::rgb::RgbStandard> GrrVertexField for palette::rgb::Rgba<S, f32> {
     fn format() -> (VertexFormat, usize) {
-	(VertexFormat::Xyzw32Float, 1)
+        (VertexFormat::Xyzw32Float, 1)
     }
 }

@@ -31,54 +31,66 @@ pub struct GrrImgui {
 
 impl<'d> GrrImgui {
     pub fn new(w: &GrrWindow) -> grr::Result<GrrImgui> {
-	let mut imgui_context = imgui::Context::create();
-	imgui_context.set_ini_filename(None);
+        let mut imgui_context = imgui::Context::create();
+        imgui_context.set_ini_filename(None);
 
-	let imgui_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
+        let imgui_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
 
-	let hidpi_factor = w.window.window().scale_factor();
-	let font_size = (13.0 * hidpi_factor) as f32;
+        let hidpi_factor = w.window.window().scale_factor();
+        let font_size = (13.0 * hidpi_factor) as f32;
 
-	imgui_context
+        imgui_context
             .fonts()
             .add_font(&[imgui::FontSource::DefaultFontData {
-		config: Some(imgui::FontConfig {
+                config: Some(imgui::FontConfig {
                     size_pixels: font_size,
                     ..imgui::FontConfig::default()
-		}),
+                }),
             }]);
 
-	Ok(GrrImgui {
-	    last_frame: std::time::Instant::now(),
-	    imgui_context,
-	    imgui_platform,
-	})
+        Ok(GrrImgui {
+            last_frame: std::time::Instant::now(),
+            imgui_context,
+            imgui_platform,
+        })
     }
 
-    pub fn renderer<'a>(&mut self, device: &'a grr::Device) -> grr::Result<grr_imgui::Renderer<'a>> {
-	unsafe {grr_imgui::Renderer::new(&mut self.imgui_context, device) }
+    pub fn renderer<'a>(
+        &mut self,
+        device: &'a grr::Device,
+    ) -> grr::Result<grr_imgui::Renderer<'a>> {
+        unsafe { grr_imgui::Renderer::new(&mut self.imgui_context, device) }
     }
 
     /// Return the UI for the current frame
     pub fn ui(&mut self) -> imgui::Ui {
-	self.imgui_context.frame()
+        self.imgui_context.frame()
     }
 
     /// Should be called on `glutin::event::MainEventsCleared` events.
     pub fn on_events_cleared(&mut self, w: &WindowedContext<PossiblyCurrent>) {
-	self.imgui_platform.prepare_frame(self.imgui_context.io_mut(), &w.window()).ok();
+        self.imgui_platform
+            .prepare_frame(self.imgui_context.io_mut(), &w.window())
+            .ok();
     }
 
     /// Should be called on `glutin::event::Event::NewEvents(_)` events.
     pub fn on_new_events(&mut self) {
-	self.last_frame = self.imgui_context.io_mut().update_delta_time(self.last_frame);
+        self.last_frame = self
+            .imgui_context
+            .io_mut()
+            .update_delta_time(self.last_frame);
     }
 
     /// Should be called on every event.
-    pub fn on_event(&mut self, event: &glutin::event::Event<()>, w: &WindowedContext<PossiblyCurrent>) {
-	self.imgui_platform.handle_event(self.imgui_context.io_mut(), &w.window(), event);
+    pub fn on_event(
+        &mut self,
+        event: &glutin::event::Event<()>,
+        w: &WindowedContext<PossiblyCurrent>,
+    ) {
+        self.imgui_platform
+            .handle_event(self.imgui_context.io_mut(), &w.window(), event);
     }
-
 }
 
 /// Headless OpenGL context.
@@ -110,7 +122,7 @@ impl GrrBuilder {
     pub fn new() -> GrrBuilder {
         GrrBuilder {
             resizable: true,
-	    visible: true,
+            visible: true,
             samples: None,
             vsync: false,
             srgb: false,
@@ -123,10 +135,7 @@ impl GrrBuilder {
     }
 
     pub fn visible(self, b: bool) -> GrrBuilder {
-	GrrBuilder {
-	    visible: b,
-	    ..self
-	}
+        GrrBuilder { visible: b, ..self }
     }
 
     pub fn resizable(self, b: bool) -> GrrBuilder {
@@ -175,7 +184,7 @@ impl GrrBuilder {
         let wb = WindowBuilder::new()
             .with_title(title)
             .with_resizable(self.resizable)
-	    .with_visible(self.visible)
+            .with_visible(self.visible)
             .with_inner_size(LogicalSize {
                 width: w,
                 height: h,
@@ -200,7 +209,6 @@ impl GrrBuilder {
                 self.debug(),
             )
         };
-
 
         Ok(GrrWindow {
             window,

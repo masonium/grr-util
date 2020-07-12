@@ -15,13 +15,17 @@ pub enum ShaderSource {
 
 impl std::fmt::Display for ShaderSource {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-	match self {
-	    Self::SourceFile(p) => write!(fmt, "SourcePath({:?})", p),
-	    Self::Literal(s) => {
-		let st: &str = &s;
-		write!(fmt, "Literal(lines={})", st.chars().take(100).collect::<String>())
-	    }
-	}
+        match self {
+            Self::SourceFile(p) => write!(fmt, "SourcePath({:?})", p),
+            Self::Literal(s) => {
+                let st: &str = &s;
+                write!(
+                    fmt,
+                    "Literal(lines={})",
+                    st.chars().take(100).collect::<String>()
+                )
+            }
+        }
     }
 }
 
