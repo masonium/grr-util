@@ -30,13 +30,13 @@ pub struct GrrImgui {
 }
 
 impl<'d> GrrImgui {
-    pub fn new(w: &GrrWindow) -> grr::Result<GrrImgui> {
+    pub fn new<'b>(w: &WindowedContext<PossiblyCurrent>) -> grr::Result<GrrImgui> {
         let mut imgui_context = imgui::Context::create();
         imgui_context.set_ini_filename(None);
 
         let imgui_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
 
-        let hidpi_factor = w.window.window().scale_factor();
+        let hidpi_factor = w.window().scale_factor();
         let font_size = (13.0 * hidpi_factor) as f32;
 
         imgui_context
