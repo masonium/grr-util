@@ -1,7 +1,6 @@
 use glutin::dpi::LogicalSize;
 use glutin::event_loop::EventLoop;
 use glutin::platform::unix::HeadlessContextExt;
-use glutin::platform::desktop::EventLoopExtDesktop;
 use glutin::window::WindowBuilder;
 use glutin::{Context, PossiblyCurrent, WindowedContext};
 use grr::Device;
