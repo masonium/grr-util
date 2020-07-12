@@ -8,7 +8,8 @@ edition = "2018"
 
 [dependencies]
 grr = {path = "/home/mason/workspace/grr"}
-art-util = {path = "/home/mason/workspace/artprojects/art-util"}
+grr-imgui = {path = "/home/mason/workspace/grr-imgui" }
+art-util = {path = "/home/mason/workspace/art-util"}
 slotmap = "*"
 itertools = "*"
 glutin = "*"
@@ -20,5 +21,4 @@ image = "*"
 thiserror = "*"
 palette = "*"
 imgui = "*"
-grr-imgui = {path = "/home/mason/workspace/grr-imgui" }
 imgui-winit-support = "*"
