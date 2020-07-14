@@ -1,7 +1,8 @@
 //! GrrVertex
 use grr::VertexFormat;
 use nalgebra::{
-    Matrix2, Matrix3, Matrix4, Point1, Point2, Point3, Point4, Vector1, Vector2, Vector3, Vector4,
+    Matrix2, Matrix3, Matrix4, Point1, Point2, Point3, Point4, Quaternion, Vector1, Vector2,
+    Vector3, Vector4,
 };
 
 /// `GrrVertex` contains utility methods that make it easier to create
@@ -70,6 +71,8 @@ impl_field!([f32; 1], X32Float);
 impl_field!([f32; 2], Xy32Float);
 impl_field!([f32; 3], Xyz32Float);
 impl_field!([f32; 4], Xyzw32Float);
+
+impl_field!(Quaternion<f32>, Xyzw32Float);
 
 impl_field!(f64, X64Float);
 impl_field!(Vector1<f64>, Xy64Float);
