@@ -3,6 +3,7 @@ mod common;
 mod line;
 mod quad;
 
+pub use aabb::UnitCube;
 pub use aabb::AABB;
 pub use common::linspace;
 pub use line::Line;
