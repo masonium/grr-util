@@ -4,7 +4,19 @@ use glutin::platform::unix::HeadlessContextExt;
 use glutin::window::WindowBuilder;
 use glutin::{Context, PossiblyCurrent, WindowedContext};
 use grr::Device;
-use std::error::Error;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Internal grr::Error")]
+    Grr(#[from] grr::Error),
+
+    #[error("Glutin Creation Error")]
+    Create(#[from] glutin::CreationError),
+
+    #[error("Glutin Context Error")]
+    Context(#[from] glutin::ContextError),
+}
 
 /// Single window with an OpenGL / `grr` device and event loop and OpenGL
 /// debugging turned on.
@@ -23,6 +35,7 @@ impl GrrWindow {
     }
 }
 
+/// Helper structure for Imgui display / rendering.
 pub struct GrrImgui {
     last_frame: std::time::Instant,
     pub imgui_context: imgui::Context,
@@ -179,7 +192,7 @@ impl GrrBuilder {
         }
     }
 
-    pub fn build_windowed(self, title: &str, w: f32, h: f32) -> Result<GrrWindow, Box<dyn Error>> {
+    pub fn build_windowed(self, title: &str, w: f32, h: f32) -> Result<GrrWindow, Error> {
         let event_loop = EventLoop::new();
         let wb = WindowBuilder::new()
             .with_title(title)
@@ -200,7 +213,10 @@ impl GrrBuilder {
                     cx = cx.with_multisampling(ms as u16);
                 }
             }
-            cx.build_windowed(wb, &event_loop)?.make_current().unwrap()
+            // When `make_current` fails, it returns the context and the error as a tuple.
+            cx.build_windowed(wb, &event_loop)?
+                .make_current()
+                .map_err(|x| x.1)?
         };
 
         let device = unsafe {
@@ -217,7 +233,7 @@ impl GrrBuilder {
         })
     }
 
-    pub fn build_headless(self) -> Result<GrrHeadless, Box<dyn Error>> {
+    pub fn build_headless(self) -> Result<GrrHeadless, Error> {
         let event_loop = EventLoop::new();
         let window = unsafe {
             glutin::ContextBuilder::new()
@@ -226,7 +242,7 @@ impl GrrBuilder {
                 .with_gl_debug_flag(self.gl_debug.is_some())
                 .build_surfaceless(&event_loop)?
                 .make_current()
-                .unwrap()
+                .map_err(|x| x.1)?
         };
 
         let device = unsafe {
