@@ -30,10 +30,6 @@ impl std::fmt::Display for ShaderSource {
 }
 
 new_key_type! {
-    pub struct ManagedShader;
-}
-
-new_key_type! {
     /// `ManagedPipeline` is a key to reference a program.
     ///
     /// `ManagedPipeline`s are guaranteed to represent to a valid
@@ -151,8 +147,14 @@ impl<'a> ShaderManager {
             ShaderSource::Literal(s) => s,
         };
 
-        let shader =
-            unsafe { device.create_shader(desc.stage, s.as_bytes(), ShaderFlags::empty()) };
+        let shader = unsafe {
+            device.create_shader(
+                desc.stage,
+                grr::ShaderSource::Glsl,
+                s.as_bytes(),
+                ShaderFlags::empty(),
+            )
+        };
 
         match shader {
             Ok(s) => Ok(s),
@@ -312,7 +314,7 @@ impl<'a> ShaderManager {
         })
     }
 
-    /// Delete teh pipeline.
+    /// Delete the pipeline.
     pub fn delete_pipeline(
         &self,
         device: &grr::Device,

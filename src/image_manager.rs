@@ -1,6 +1,5 @@
 //! Manager for images, image views, and samplers
 use crate::image_format::*;
-use grr::Object;
 use slotmap::{new_key_type, DenseSlotMap};
 use thiserror::Error;
 
@@ -54,7 +53,7 @@ impl ImageView {
 #[derive(Debug, Error)]
 pub enum Error {
     /// Internal `grr` error
-    GrrError(#[source] grr::Error),
+    GrrError(#[from] grr::Error),
     MissingImageId(ImageId),
     BadDataLayout,
     ImproperDataFormat,
@@ -68,12 +67,6 @@ impl std::fmt::Display for Error {
             Error::BadDataLayout => write!(f, "BadDataLayout"),
             Error::ImproperDataFormat => write!(f, "ImproperDataFormat"),
         }
-    }
-}
-
-impl From<grr::Error> for Error {
-    fn from(e: grr::Error) -> Error {
-        Error::GrrError(e)
     }
 }
 
@@ -147,14 +140,14 @@ impl ImageManager {
         let handle = self.create_image(device, image_type, format, num_mip_map_levels)?;
 
         // copy the image data to the client
-        let sub_level = grr::SubresourceLevel {
+        let sub_level = grr::SubresourceLayers {
             level: 0,
             layers: 0..1,
         };
-        let sub_layout = grr::SubresourceLayout {
+        let sub_layout = grr::MemoryLayout {
             base_format,
             format_layout,
-            row_pitch: 0,
+            row_length: 0,
             image_height: 0,
             alignment: 1,
         };
@@ -162,12 +155,14 @@ impl ImageManager {
         let image = self.images[handle].handle();
         unsafe {
             device.copy_host_to_image(
-                image,
-                sub_level,
-                grr::Offset { x: 0, y: 0, z: 0 },
-                image_type_to_full_extent(image_type),
                 d,
-                sub_layout,
+                image,
+                grr::HostImageCopy {
+                    host_layout: sub_layout,
+                    image_extent: image_type.full_extent(),
+                    image_offset: grr::Offset { x: 0, y: 0, z: 0 },
+                    image_subresource: sub_level,
+                },
             );
         }
 
@@ -219,7 +214,7 @@ impl ImageManager {
         }))
     }
 
-    /// Return the texture as a vector.
+    /// Return the texture as a packed vector.
     pub fn get_texture_vec<T: TexelBaseType>(
         &self,
         device: &grr::Device,
@@ -234,15 +229,27 @@ impl ImageManager {
         let mut texture_data: Vec<T> = Vec::with_capacity(num_texels);
         texture_data.resize(num_texels, T::zero());
 
-        // grab the texture data
+        let mem_layout = grr::MemoryLayout {
+            base_format: image.format.base_format(),
+            format_layout: T::layout,
+            row_length: 0,
+            image_height: 0,
+            alignment: 1,
+        };
+
         unsafe {
-            device.context().GetTextureImage(
-                image.handle().handle(),
-                0,
-                image.format.base_format() as _,
-                T::layout as _,
-                (texture_data.len() * std::mem::size_of::<f32>()) as i32,
-                texture_data.as_ptr() as _,
+            device.copy_image_to_host(
+                image.handle(),
+                &mut texture_data,
+                grr::HostImageCopy {
+                    host_layout: mem_layout,
+                    image_subresource: grr::SubresourceLayers {
+                        level: 0,
+                        layers: 0..1,
+                    },
+                    image_offset: grr::Offset::ORIGIN,
+                    image_extent: image.image_type.full_extent(),
+                },
             );
         }
 
@@ -290,7 +297,7 @@ impl ImageManager {
     }
 
     /// Bind the image view to image storage.
-    pub fn bind_storage(&mut self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
+    pub fn bind_storage(&self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
         unsafe {
             if let Some(v) = self.views.get(view) {
                 device.bind_storage_image_views(bind_point, &[v.handle]);
@@ -299,7 +306,7 @@ impl ImageManager {
     }
 
     /// Bind the image view to a sampler.
-    pub fn bind(&mut self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
+    pub fn bind(&self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
         unsafe {
             if let Some(v) = self.views.get(view) {
                 device.bind_image_views(bind_point, &[v.handle]);

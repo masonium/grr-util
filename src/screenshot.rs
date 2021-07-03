@@ -58,18 +58,16 @@ pub fn save_framebuffer_rgba<P: AsRef<Path>>(
 
         device.bind_read_framebuffer(fb);
 
+        let memory_layout = grr::MemoryLayout {
+            alignment: 1,
+            base_format: grr::BaseFormat::RGBA,
+            format_layout: grr::FormatLayout::U8,
+            row_length: 0,
+            image_height: 0,
+        };
+
         // copy from that framebuffer to host memory
-        device.copy_attachment_to_host(
-            region,
-            grr::SubresourceLayout {
-                alignment: 1,
-                base_format: grr::BaseFormat::RGBA,
-                format_layout: grr::FormatLayout::U8,
-                row_pitch: 0,
-                image_height: 0,
-            },
-            &mut buffer_data,
-        );
+        device.copy_attachment_to_host(region, memory_layout, &mut buffer_data);
     }
 
     // Swap the order of the rows so that the output will not be flipped vertically.

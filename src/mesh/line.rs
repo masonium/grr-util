@@ -51,11 +51,11 @@ impl<'device> Line<'device> {
         })
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, r: std::ops::Range<u32>) {
         unsafe {
             self.device.bind_vertex_array(self.varr);
             self.device
-                .draw(grr::Primitive::LineStrip, 0..(self.n as u32 + 1), 0..1);
+                .draw(grr::Primitive::LineStrip, 0..(self.n as u32 + 1), r);
         }
     }
 }

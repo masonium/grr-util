@@ -1,7 +1,7 @@
 //! GrrVertex
 use grr::VertexFormat;
 use nalgebra::{
-    Matrix2, Matrix3, Matrix4, Point1, Point2, Point3, Point4, Quaternion, Vector1, Vector2,
+    Matrix2, Matrix3, Matrix4, Point1, Point2, Point3, Point4, Quaternion, Unit, Vector1, Vector2,
     Vector3, Vector4,
 };
 
@@ -73,6 +73,9 @@ impl_field!([f32; 3], Xyz32Float);
 impl_field!([f32; 4], Xyzw32Float);
 
 impl_field!(Quaternion<f32>, Xyzw32Float);
+impl_field!(Unit<Quaternion<f32>>, Xyzw32Float);
+impl_field!(Quaternion<f64>, Xyzw64Float);
+impl_field!(Unit<Quaternion<f64>>, Xyzw64Float);
 
 impl_field!(f64, X64Float);
 impl_field!(Vector1<f64>, Xy64Float);
@@ -94,6 +97,9 @@ impl_matrix_field!(Matrix4<f32>, Xyzw32Float, 16, 4);
 impl_matrix_field!([[f32; 2]; 2], Xy32Float, 8, 2);
 impl_matrix_field!([[f32; 3]; 3], Xyz32Float, 12, 3);
 impl_matrix_field!([[f32; 4]; 4], Xyzw32Float, 16, 4);
+
+impl_field!(u32, X32Uint);
+impl_field!([u32; 2], Xy32Uint);
 
 impl<S: palette::rgb::RgbStandard> GrrVertexField for palette::rgb::Rgb<S, u8> {
     fn format() -> (VertexFormat, usize) {

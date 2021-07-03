@@ -10,6 +10,6 @@ pub mod window;
 pub use color::{hex_constant_rgb, hex_constant_rgba};
 pub use image_manager::ImageManager;
 pub use num_traits::Zero;
-pub use shader_manager::{ShaderDesc, ShaderManager};
+pub use shader_manager::{ManagedPipeline, ShaderDesc, ShaderManager};
 pub use vertex::GrrVertex;
 pub use window::{GrrBuilder, GrrHeadless, GrrImgui, GrrWindow};
