@@ -61,6 +61,9 @@ impl<'d> GrrImgui {
                 }),
             }]);
 
+        imgui_context.style_mut().colors[imgui::StyleColor::WindowBg as usize] =
+            [0.0, 0.0, 0.0, 0.5];
+
         Ok(GrrImgui {
             last_frame: std::time::Instant::now(),
             imgui_context,
@@ -83,16 +86,17 @@ impl<'d> GrrImgui {
     /// Should be called on `glutin::event::MainEventsCleared` events.
     pub fn on_events_cleared(&mut self, w: &WindowedContext<PossiblyCurrent>) {
         self.imgui_platform
-            .prepare_frame(self.imgui_context.io_mut(), &w.window())
-            .ok();
+            .prepare_frame(self.imgui_context.io_mut(), w.window())
+            .expect("start frame");
     }
 
     /// Should be called on `glutin::event::Event::NewEvents(_)` events.
     pub fn on_new_events(&mut self) {
-        self.last_frame = self
-            .imgui_context
+        let now = std::time::Instant::now();
+        self.imgui_context
             .io_mut()
-            .update_delta_time(self.last_frame);
+            .update_delta_time(now - self.last_frame);
+        self.last_frame = now;
     }
 
     /// Should be called on every event.
@@ -102,7 +106,7 @@ impl<'d> GrrImgui {
         w: &WindowedContext<PossiblyCurrent>,
     ) {
         self.imgui_platform
-            .handle_event(self.imgui_context.io_mut(), &w.window(), event);
+            .handle_event(self.imgui_context.io_mut(), w.window(), event);
     }
 }
 
@@ -185,7 +189,7 @@ impl GrrBuilder {
                         id, report, source, dtype, msg
                     );
                 },
-                flags: flags,
+                flags,
             }
         } else {
             grr::Debug::Disable
