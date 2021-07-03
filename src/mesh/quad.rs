@@ -1,7 +1,7 @@
 //! Full-screen quad mesh
 use std::marker::PhantomData;
 
-use crate::{GrrVertex, mesh::common::*};
+use crate::{mesh::common::*, GrrVertex};
 
 /// Full-screen quad, with XY coordinates ranging [-1, 1] ^ 2
 pub struct Quad<'device> {
@@ -65,7 +65,6 @@ impl<'device> Quad<'device> {
     }
 }
 
-
 impl<'device> Drop for Quad<'device> {
     fn drop(&mut self) {
         unsafe {
@@ -74,7 +73,6 @@ impl<'device> Drop for Quad<'device> {
         }
     }
 }
-
 
 /// Full-screen quad, with XY coordinates ranging [-1, 1] ^ 2
 pub struct InstancedQuad<'device, T: GrrVertex> {
@@ -85,7 +83,7 @@ pub struct InstancedQuad<'device, T: GrrVertex> {
     //instances: Vec<T>,
     varr: VertexArray,
     device: &'device Device,
-    _data: PhantomData<T>
+    _data: PhantomData<T>,
 }
 
 impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
@@ -102,39 +100,40 @@ impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
             )?
         };
         let instbuff = unsafe {
-            device.create_buffer(std::mem::size_of::<T>() as u64 * num_instances as u64,
-				 grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::DYNAMIC
+            device.create_buffer(
+                std::mem::size_of::<T>() as u64 * num_instances as u64,
+                grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::DYNAMIC,
             )?
         };
 
-	let mut attribs = vec![grr::VertexAttributeDesc {
+        let mut attribs = vec![grr::VertexAttributeDesc {
             location: 0,
             binding: 0,
             format: grr::VertexFormat::Xy32Float,
             offset: 0,
         }];
-	attribs.extend_from_slice(&T::attribs(1, 1));
+        attribs.extend_from_slice(&T::attribs(1, 1));
 
-        let varr = unsafe {
-            device.create_vertex_array(&attribs)?
-        };
+        let varr = unsafe { device.create_vertex_array(&attribs)? };
 
         unsafe {
             device.bind_vertex_buffers(
                 varr,
                 0,
-                &[grr::VertexBufferView {
-                    buffer: vbuff,
-                    stride: 8,
-                    offset: 0,
-                    input_rate: grr::InputRate::Vertex,
-                },
-		  grr::VertexBufferView {
-		      buffer: instbuff,
-		      stride: std::mem::size_of::<T>() as u32,
-		      offset: 0,
-		      input_rate: grr::InputRate::Instance{ divisor: 1}
-		  }],
+                &[
+                    grr::VertexBufferView {
+                        buffer: vbuff,
+                        stride: 8,
+                        offset: 0,
+                        input_rate: grr::InputRate::Vertex,
+                    },
+                    grr::VertexBufferView {
+                        buffer: instbuff,
+                        stride: std::mem::size_of::<T>() as u32,
+                        offset: 0,
+                        input_rate: grr::InputRate::Instance { divisor: 1 },
+                    },
+                ],
             );
             device.bind_index_buffer(varr, ibuff);
         }
@@ -142,31 +141,37 @@ impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
         Ok(InstancedQuad {
             vbuff,
             ibuff,
-	    instance_buffer: instbuff,
-	    num_instances,
+            instance_buffer: instbuff,
+            num_instances,
             varr,
             device,
-	    _data: PhantomData {}
+            _data: PhantomData {},
         })
     }
 
     pub fn draw(&self, instances: &[T]) {
-	assert!(instances.len() as u32 <= self.num_instances);
+        assert!(instances.len() as u32 <= self.num_instances);
         unsafe {
-	    self.device.copy_host_to_buffer(self.instance_buffer, 0, grr::as_u8_slice(instances));
-            self.device.bind_vertex_array(self.varr);
             self.device
-                .draw_indexed(grr::Primitive::Triangles, grr::IndexTy::U32, 0..6, 0..instances.len() as u32, 0);
+                .copy_host_to_buffer(self.instance_buffer, 0, grr::as_u8_slice(instances));
+            self.device.bind_vertex_array(self.varr);
+            self.device.draw_indexed(
+                grr::Primitive::Triangles,
+                grr::IndexTy::U32,
+                0..6,
+                0..instances.len() as u32,
+                0,
+            );
         }
     }
 }
-
 
 impl<'device, T: GrrVertex> Drop for InstancedQuad<'device, T> {
     fn drop(&mut self) {
         unsafe {
             self.device.delete_vertex_arrays(&[self.varr]);
-            self.device.delete_buffers(&[self.vbuff, self.ibuff, self.instance_buffer]);
+            self.device
+                .delete_buffers(&[self.vbuff, self.ibuff, self.instance_buffer]);
         }
     }
 }

@@ -9,4 +9,4 @@ pub use aabb::AABB;
 pub use common::linspace;
 pub use line::Line;
 pub use primitive_bag::PrimitiveBag;
-pub use quad::{Quad, InstancedQuad};
+pub use quad::{InstancedQuad, Quad};

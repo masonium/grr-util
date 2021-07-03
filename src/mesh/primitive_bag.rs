@@ -41,7 +41,7 @@ impl<'device> PrimitiveBag<'device> {
             vbuff,
             varr,
             device,
-	    prim_type,
+            prim_type,
             n: vertices.len() as u32,
         })
     }
@@ -50,8 +50,7 @@ impl<'device> PrimitiveBag<'device> {
     pub fn draw(&self, r: std::ops::Range<u32>) {
         unsafe {
             self.device.bind_vertex_array(self.varr);
-            self.device
-                .draw(self.prim_type, 0..self.n, r);
+            self.device.draw(self.prim_type, 0..self.n, r);
         }
     }
 }
