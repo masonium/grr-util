@@ -7,9 +7,13 @@ use itertools::process_results;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+/// Representation of where shader description can come from.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ShaderSource {
+    /// GLSL filename
     SourceFile(PathBuf),
+
+    /// String literal for hard-coded or in-program data.
     Literal(String),
 }
 
@@ -155,23 +159,24 @@ pub enum Error {
 
 /// The shader manager keeps track of all shader objects and
 /// pipelines, and managing the relationship between them.
-#[derive(Default)]
-pub struct ShaderManager {
+pub struct ShaderManager<'d> {
     //shader_descs: HashSet<ShaderDesc>,
+    device: &'d grr::Device,
     pipelines: DenseSlotMap<ManagedPipeline, Pipeline>,
 }
 
-impl<'a> ShaderManager {
-    pub fn new() -> ShaderManager {
+impl<'d> ShaderManager<'d> {
+    pub fn new(device: &'d grr::Device) -> ShaderManager {
         ShaderManager {
             pipelines: DenseSlotMap::with_key(),
+            device,
         }
     }
 
     /// Attempt to compile a shader from a `ShaderSource`.
     ///
     /// Returns the created shader if it compiled successfully.
-    fn load_shader(&self, device: &grr::Device, desc: &ShaderDesc) -> Result<grr::Shader, Error> {
+    fn load_shader(&self, desc: &ShaderDesc) -> Result<grr::Shader, Error> {
         let s = match desc.source.clone() {
             ShaderSource::SourceFile(path) => {
                 std::fs::read_to_string(&path).map_err(|_| Error::FileError(path))?
@@ -180,7 +185,7 @@ impl<'a> ShaderManager {
         };
 
         let shader = unsafe {
-            device.create_shader(
+            self.device.create_shader(
                 desc.stage,
                 grr::ShaderSource::Glsl,
                 s.as_bytes(),
@@ -191,9 +196,9 @@ impl<'a> ShaderManager {
         match shader {
             Ok(s) => Ok(s),
             Err(grr::Error::CompileError(s)) => {
-                let shader_log = unsafe { device.get_shader_log(s) };
+                let shader_log = unsafe { self.device.get_shader_log(s) };
                 unsafe {
-                    device.delete_shader(s);
+                    self.device.delete_shader(s);
                 }
                 Err(Error::CompilationError(
                     desc.source.clone(),
@@ -208,7 +213,6 @@ impl<'a> ShaderManager {
     /// the links are successful.
     fn load_pipeline(
         &self,
-        device: &grr::Device,
         shaders: &[ShaderDesc],
         ptype: Option<PipelineType>,
     ) -> Result<(grr::Pipeline, PipelineType), Error> {
@@ -234,24 +238,27 @@ impl<'a> ShaderManager {
 
         let raw_shaders: Vec<_> = shaders
             .iter()
-            .map(|s| self.load_shader(device, &s))
+            .map(|s| self.load_shader(&s))
             .collect();
 
         let raw_shaders: Vec<_> = process_results(raw_shaders, |iter| iter.collect())?;
 
-        let pipeline = unsafe { device.create_pipeline(&raw_shaders, PipelineFlags::empty()) };
+        let pipeline = unsafe {
+            self.device
+                .create_pipeline(&raw_shaders, PipelineFlags::empty())
+        };
 
         // delete all of the shaders
         raw_shaders.iter().for_each(|s| unsafe {
-            device.delete_shader(*s);
+            self.device.delete_shader(*s);
         });
 
         match pipeline {
             Ok(p) => Ok((p, pipeline_type)),
             Err(grr::Error::LinkError(p)) => {
-                let plog = unsafe { device.get_pipeline_log(p) };
+                let plog = unsafe { self.device.get_pipeline_log(p) };
                 unsafe {
-                    device.delete_pipeline(p);
+                    self.device.delete_pipeline(p);
                 }
                 Err(Error::LinkError(plog.unwrap_or_default()))
             }
@@ -262,11 +269,10 @@ impl<'a> ShaderManager {
     /// Create and link a program
     pub fn create_pipeline(
         &mut self,
-        device: &grr::Device,
         shaders: &[ShaderDesc],
         ptype: Option<PipelineType>,
     ) -> Result<ManagedPipeline, Error> {
-        self.load_pipeline(device, shaders, ptype)
+        self.load_pipeline(shaders, ptype)
             .map(|(p, pipeline_type)| {
                 self.pipelines.insert(Pipeline {
                     shaders: shaders.to_vec(),
@@ -279,7 +285,6 @@ impl<'a> ShaderManager {
     /// Create and link a program from file shaders.
     pub fn create_pipeline_from_files<P: AsRef<Path>>(
         &mut self,
-        device: &grr::Device,
         shader_filenames: &[P],
     ) -> Result<ManagedPipeline, Error> {
         let mut shader_descs = vec![];
@@ -287,17 +292,17 @@ impl<'a> ShaderManager {
             shader_descs.push(ShaderDesc::from_file(filename, guess_stage(filename)?));
         }
 
-        self.create_pipeline(device, &shader_descs, None)
+        self.create_pipeline(&shader_descs, None)
     }
 
     /// Reload all of the shaders associated with the pipeline, and
     /// relink the pipeline. If any of the steps fail, the underlying
     /// program does not change at all.
-    pub fn reload_all_pipelines(&self, device: &grr::Device) {
+    pub fn reload_all_pipelines(&self) {
         // Try to re-create every pipeline
         for pipeline in self.pipelines.values() {
             let new_pipeline_raw =
-                self.load_pipeline(device, &pipeline.shaders, Some(pipeline.pipeline_type));
+                self.load_pipeline(&pipeline.shaders, Some(pipeline.pipeline_type));
             if let Ok((new_p, _)) = new_pipeline_raw {
                 pipeline.pipeline.replace(new_p);
             }
@@ -339,43 +344,36 @@ impl<'a> ShaderManager {
     }
 
     /// Bind the pipeline.
-    pub fn bind_pipeline(
-        &self,
-        device: &grr::Device,
-        pipeline: ManagedPipeline,
-    ) -> Result<(), Error> {
+    pub fn bind_pipeline(&self, pipeline: ManagedPipeline) -> Result<(), Error> {
         self.map_pipeline(pipeline, |p| unsafe {
-            device.bind_pipeline(p);
+            self.device.bind_pipeline(p);
         })
     }
 
+    /// Bind uniforms to the pipeline.
     pub fn bind_uniform_constants(
         &self,
-        device: &grr::Device,
         pipeline: ManagedPipeline,
         first: u32,
         constants: &[grr::Constant],
     ) -> Result<(), Error> {
         self.map_pipeline(pipeline, |p| unsafe {
-            device.bind_uniform_constants(p, first, constants)
+            self.device.bind_uniform_constants(p, first, constants)
         })
     }
 
     /// Delete the pipeline.
-    pub fn delete_pipeline(
-        &self,
-        device: &grr::Device,
-        pipeline: ManagedPipeline,
-    ) -> Result<(), Error> {
+    pub fn delete_pipeline(&self, pipeline: ManagedPipeline) -> Result<(), Error> {
         self.map_pipeline(pipeline, |p| unsafe {
-            device.delete_pipeline(p);
+            self.device.delete_pipeline(p);
         })
     }
 
-    pub fn clear(&mut self, device: &grr::Device) {
+    /// Delete all pipelines managed by this manager.
+    pub fn clear(&mut self) {
         for (_, p) in self.pipelines.drain() {
             unsafe {
-                device.delete_pipeline(p.pipeline.into_inner());
+                self.device.delete_pipeline(p.pipeline.into_inner());
             }
         }
     }
