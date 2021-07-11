@@ -100,6 +100,12 @@ impl_matrix_field!([[f32; 4]; 4], Xyzw32Float, 16, 4);
 
 impl_field!(u32, X32Uint);
 impl_field!([u32; 2], Xy32Uint);
+impl_field!([u32; 3], Xyz32Uint);
+impl_field!([u32; 4], Xyzw32Uint);
+impl_field!(i32, X32Int);
+impl_field!([i32; 2], Xy32Int);
+impl_field!([i32; 3], Xyz32Int);
+impl_field!([i32; 4], Xyzw32Int);
 
 impl<S: palette::rgb::RgbStandard> GrrVertexField for palette::rgb::Rgb<S, u8> {
     fn format() -> (VertexFormat, usize) {
