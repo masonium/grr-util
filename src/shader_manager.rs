@@ -95,24 +95,24 @@ fn guess_stage<P: AsRef<Path>>(filename: P) -> Result<grr::ShaderStage, Error> {
     // strip the glsl part from the ending, if it exists.
     let path_string = path_string.trim_end_matches(".glsl");
 
-    if path_string.ends_with(".vert")  {
-	Ok(grr::ShaderStage::Vertex)
+    if path_string.ends_with(".vert") {
+        Ok(grr::ShaderStage::Vertex)
     } else if path_string.ends_with(".frag") {
-	Ok(grr::ShaderStage::Fragment)
+        Ok(grr::ShaderStage::Fragment)
     } else if path_string.ends_with(".comp") {
-	Ok(grr::ShaderStage::Compute)
+        Ok(grr::ShaderStage::Compute)
     } else if path_string.ends_with(".geom") {
-	Ok(grr::ShaderStage::Geometry)
+        Ok(grr::ShaderStage::Geometry)
     } else if path_string.ends_with(".tesc") {
-	Ok(grr::ShaderStage::TessellationControl)
+        Ok(grr::ShaderStage::TessellationControl)
     } else if path_string.ends_with(".tese") {
-	Ok(grr::ShaderStage::TessellationEvaluation)
+        Ok(grr::ShaderStage::TessellationEvaluation)
     } else if path_string.ends_with(".mesh") {
-	Ok(grr::ShaderStage::MeshNv)
+        Ok(grr::ShaderStage::MeshNv)
     } else if path_string.ends_with(".task") {
-	Ok(grr::ShaderStage::TaskNv)
+        Ok(grr::ShaderStage::TaskNv)
     } else {
-	Err(Error::UnknownStage(path.to_owned()))
+        Err(Error::UnknownStage(path.to_owned()))
     }
 }
 
@@ -282,12 +282,12 @@ impl<'a> ShaderManager {
         device: &grr::Device,
         shader_filenames: &[P],
     ) -> Result<ManagedPipeline, Error> {
-	let mut shader_descs = vec![];
-	for filename in shader_filenames {
-	    shader_descs.push(ShaderDesc::from_file(filename, guess_stage(filename)?));
-	}
+        let mut shader_descs = vec![];
+        for filename in shader_filenames {
+            shader_descs.push(ShaderDesc::from_file(filename, guess_stage(filename)?));
+        }
 
-	self.create_pipeline(device, &shader_descs, None)
+        self.create_pipeline(device, &shader_descs, None)
     }
 
     /// Reload all of the shaders associated with the pipeline, and

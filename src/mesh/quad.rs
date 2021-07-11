@@ -172,35 +172,41 @@ impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
     /// Internally update the storage buffer if the new collection of
     /// instances is larger than what has previously been allocated.
     pub fn update_instances(&mut self, instances: &[T]) {
-	// If we don't have room in the existing instance buffer for
-	// the new quads, generate a new buffer and bind it to our VAO.
-	if (instances.len() as u32) > self.capacity_instances {
-	    unsafe { 
-		let new_buff = 
-		    self.device.create_buffer_from_host(grr::as_u8_slice(instances), 
-							MemoryFlags::DYNAMIC | MemoryFlags::CPU_MAP_WRITE).unwrap();
-		self.device.delete_buffer(self.instance_buffer);
-		self.instance_buffer = new_buff;
-		self.device.bind_vertex_buffers(
+        // If we don't have room in the existing instance buffer for
+        // the new quads, generate a new buffer and bind it to our VAO.
+        if (instances.len() as u32) > self.capacity_instances {
+            unsafe {
+                let new_buff = self
+                    .device
+                    .create_buffer_from_host(
+                        grr::as_u8_slice(instances),
+                        MemoryFlags::DYNAMIC | MemoryFlags::CPU_MAP_WRITE,
+                    )
+                    .unwrap();
+                self.device.delete_buffer(self.instance_buffer);
+                self.instance_buffer = new_buff;
+                self.device.bind_vertex_buffers(
                     self.varr,
                     1,
-                    &[
-			grr::VertexBufferView {
-                            buffer: new_buff,
-                            stride: std::mem::size_of::<T>() as u32,
-                            offset: 0,
-                            input_rate: grr::InputRate::Instance { divisor: 1 },
-			},
-                    ],
-		);
-	    }
-	    self.capacity_instances = instances.len() as u32;
-	} else {
+                    &[grr::VertexBufferView {
+                        buffer: new_buff,
+                        stride: std::mem::size_of::<T>() as u32,
+                        offset: 0,
+                        input_rate: grr::InputRate::Instance { divisor: 1 },
+                    }],
+                );
+            }
+            self.capacity_instances = instances.len() as u32;
+        } else {
             unsafe {
-		self.device.copy_host_to_buffer(self.instance_buffer, 0, grr::as_u8_slice(instances));
-		self.num_instances = instances.len() as u32;
-	    }
-	}
+                self.device.copy_host_to_buffer(
+                    self.instance_buffer,
+                    0,
+                    grr::as_u8_slice(instances),
+                );
+                self.num_instances = instances.len() as u32;
+            }
+        }
     }
 }
 
