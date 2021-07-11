@@ -87,6 +87,35 @@ impl PipelineType {
     }
 }
 
+/// Based on the name of the shader filename, guess the
+/// `grr::ShaderStage` of the shader.
+fn guess_stage<P: AsRef<Path>>(filename: P) -> Result<grr::ShaderStage, Error> {
+    let path: &Path = filename.as_ref();
+    let path_string = path.to_string_lossy();
+    // strip the glsl part from the ending, if it exists.
+    let path_string = path_string.trim_end_matches(".glsl");
+
+    if path_string.ends_with(".vert")  {
+	Ok(grr::ShaderStage::Vertex)
+    } else if path_string.ends_with(".frag") {
+	Ok(grr::ShaderStage::Fragment)
+    } else if path_string.ends_with(".comp") {
+	Ok(grr::ShaderStage::Compute)
+    } else if path_string.ends_with(".geom") {
+	Ok(grr::ShaderStage::Geometry)
+    } else if path_string.ends_with(".tesc") {
+	Ok(grr::ShaderStage::TessellationControl)
+    } else if path_string.ends_with(".tese") {
+	Ok(grr::ShaderStage::TessellationEvaluation)
+    } else if path_string.ends_with(".mesh") {
+	Ok(grr::ShaderStage::MeshNv)
+    } else if path_string.ends_with(".task") {
+	Ok(grr::ShaderStage::TaskNv)
+    } else {
+	Err(Error::UnknownStage(path.to_owned()))
+    }
+}
+
 #[derive(Clone)]
 struct Pipeline {
     pipeline: Cell<grr::Pipeline>,
@@ -110,6 +139,9 @@ pub enum Error {
 
     #[error("linking incompatible shader")]
     IncompatibleShaderTypes,
+
+    #[error("Could not guess the stage from filename {0}")]
+    UnknownStage(PathBuf),
 
     #[error("Cannot find pipeline")]
     MissingPipeline,
@@ -226,6 +258,7 @@ impl<'a> ShaderManager {
             Err(e) => Err(Error::GrrError(e)),
         }
     }
+
     /// Create and link a program
     pub fn create_pipeline(
         &mut self,
@@ -241,6 +274,20 @@ impl<'a> ShaderManager {
                     pipeline_type,
                 })
             })
+    }
+
+    /// Create and link a program from file shaders.
+    pub fn create_pipeline_from_files<P: AsRef<Path>>(
+        &mut self,
+        device: &grr::Device,
+        shader_filenames: &[P],
+    ) -> Result<ManagedPipeline, Error> {
+	let mut shader_descs = vec![];
+	for filename in shader_filenames {
+	    shader_descs.push(ShaderDesc::from_file(filename, guess_stage(filename)?));
+	}
+
+	self.create_pipeline(device, &shader_descs, None)
     }
 
     /// Reload all of the shaders associated with the pipeline, and
