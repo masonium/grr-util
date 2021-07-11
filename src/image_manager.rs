@@ -87,29 +87,32 @@ impl From<ImageId> for ImageOrViewId {
 }
 
 /// Create and bind images, with caching for image properties.
-#[derive(Default)]
-pub struct ImageManager {
+pub struct ImageManager<'d> {
     images: DenseSlotMap<ImageId, Image>,
     views: DenseSlotMap<ImageViewId, ImageView>,
+    device: &'d grr::Device,
 }
 
-impl ImageManager {
-    pub fn new() -> ImageManager {
+impl<'d> ImageManager<'d> {
+    pub fn new(device: &'d grr::Device) -> ImageManager {
         ImageManager {
             images: DenseSlotMap::with_key(),
             views: DenseSlotMap::with_key(),
+            device,
         }
     }
 
     /// Create a new image with the specified storage format and type.
     pub fn create_image(
         &mut self,
-        device: &grr::Device,
         image_type: grr::ImageType,
         format: grr::Format,
         num_mipmap_levels: u32,
     ) -> Result<ImageId, Error> {
-        let handle = unsafe { device.create_image(image_type, format, num_mipmap_levels)? };
+        let handle = unsafe {
+            self.device
+                .create_image(image_type, format, num_mipmap_levels)?
+        };
 
         Ok(self.images.insert(Image {
             handle,
@@ -121,7 +124,6 @@ impl ImageManager {
 
     pub fn create_image_from_ndarray<PC: TexelBaseType, D: TextureDim, CD: TextureComponentDim>(
         &mut self,
-        device: &grr::Device,
         data: &ndarray::Array<nalgebra::VectorN<PC, CD>, D>,
         num_mip_map_levels: u32,
         gen_mipmaps: bool,
@@ -137,7 +139,7 @@ impl ImageManager {
         let format = format_from_base_and_layout(base_format, format_layout)
             .ok_or(Error::ImproperDataFormat)?;
 
-        let handle = self.create_image(device, image_type, format, num_mip_map_levels)?;
+        let handle = self.create_image(image_type, format, num_mip_map_levels)?;
 
         // copy the image data to the client
         let sub_level = grr::SubresourceLayers {
@@ -154,7 +156,7 @@ impl ImageManager {
 
         let image = self.images[handle].handle();
         unsafe {
-            device.copy_host_to_image(
+            self.device.copy_host_to_image(
                 d,
                 image,
                 grr::HostImageCopy {
@@ -168,7 +170,7 @@ impl ImageManager {
 
         if gen_mipmaps {
             unsafe {
-                device.generate_mipmaps(image);
+                self.device.generate_mipmaps(image);
             }
         };
 
@@ -176,11 +178,7 @@ impl ImageManager {
     }
 
     /// Create a new image view, using the full image.
-    pub fn create_image_view_whole(
-        &mut self,
-        device: &grr::Device,
-        image_id: ImageId,
-    ) -> Result<ImageViewId, Error> {
+    pub fn create_image_view_whole(&mut self, image_id: ImageId) -> Result<ImageViewId, Error> {
         let image = match self.images.get(image_id) {
             Some(img) => img,
             None => {
@@ -201,7 +199,8 @@ impl ImageManager {
         };
 
         let handle = unsafe {
-            device.create_image_view(image.handle, image_view_type, image.format, sub_range)?
+            self.device
+                .create_image_view(image.handle, image_view_type, image.format, sub_range)?
         };
 
         Ok(self.views.insert(ImageView {
@@ -215,11 +214,7 @@ impl ImageManager {
     }
 
     /// Return the texture as a packed vector.
-    pub fn get_texture_vec<T: TexelBaseType>(
-        &self,
-        device: &grr::Device,
-        image_id: ImageId,
-    ) -> Result<Vec<T>, Error> {
+    pub fn get_texture_vec<T: TexelBaseType>(&self, image_id: ImageId) -> Result<Vec<T>, Error> {
         let image = self
             .images
             .get(image_id)
@@ -238,7 +233,7 @@ impl ImageManager {
         };
 
         unsafe {
-            device.copy_image_to_host(
+            self.device.copy_image_to_host(
                 image.handle(),
                 &mut texture_data,
                 grr::HostImageCopy {
@@ -283,33 +278,34 @@ impl ImageManager {
     }
 
     /// Delete all images and views.
-    pub fn clear(&mut self, device: &grr::Device) {
+    pub fn clear(&mut self) {
         for (_id, view) in self.views.drain() {
             unsafe {
-                device.delete_image_view(view.handle);
+                self.device.delete_image_view(view.handle);
             }
         }
         for (_id, image) in self.images.drain() {
             unsafe {
-                device.delete_image(image.handle);
+                self.device.delete_image(image.handle);
             }
         }
     }
 
     /// Bind the image view to image storage.
-    pub fn bind_storage(&self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
+    pub fn bind_storage(&self, bind_point: u32, view: ImageViewId) {
         unsafe {
             if let Some(v) = self.views.get(view) {
-                device.bind_storage_image_views(bind_point, &[v.handle]);
+                self.device
+                    .bind_storage_image_views(bind_point, &[v.handle]);
             }
         }
     }
 
     /// Bind the image view to a sampler.
-    pub fn bind(&self, device: &grr::Device, bind_point: u32, view: ImageViewId) {
+    pub fn bind(&self, bind_point: u32, view: ImageViewId) {
         unsafe {
             if let Some(v) = self.views.get(view) {
-                device.bind_image_views(bind_point, &[v.handle]);
+                self.device.bind_image_views(bind_point, &[v.handle]);
             }
         }
     }
