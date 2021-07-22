@@ -1,0 +1,23 @@
+[package]
+name = "grr-util-derive"
+version = "0.1.0"
+authors = ["Mason Smith <masonium@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0"
+memoffset = "*"
+proc-macro2 = "1.0"
+
+[dependencies.syn]
+version = "*"
+features = ["derive"]
+
+[dev-dependencies]
+grr = { path = "/home/mason/workspace/grr" }
+grr-util = { path = "../grr-util" }
+palette = "*"
+nalgebra = "0.25"

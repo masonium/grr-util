@@ -260,21 +260,44 @@ impl<'d> ImageManager<'d> {
     }
 
     /// Delete an existing image.
-    pub fn delete_image(&mut self, device: &grr::Device, image: ImageId) {
+    pub fn delete_image(&mut self, image: ImageId) {
         if let Some(img) = self.images.remove(image) {
             unsafe {
-                device.delete_image(img.handle);
+                self.device.delete_image(img.handle);
             }
         }
     }
 
     /// Delete an image view.
-    pub fn delete_image_view(&mut self, device: &grr::Device, view: ImageViewId) {
+    pub fn delete_image_view(&mut self,view: ImageViewId) {
         if let Some(v) = self.views.remove(view) {
             unsafe {
-                device.delete_image_view(v.handle);
+                self.device.delete_image_view(v.handle);
             }
         }
+    }
+
+    /// Assign a name to the internal OpenGL object represented by the
+    /// image or view.
+    ///
+    /// Useful for debugging (especially with RenderDoc).
+    pub fn assign_label(&self, img: impl Into<ImageOrViewId>, label: &str) {
+	match img.into() {
+	    ImageOrViewId::Image(i) => {
+		self.get_image_handle(i).map(|handle| {
+		    unsafe {
+			self.device.object_name(handle, label);
+		    }
+		});
+	    },
+	    ImageOrViewId::View(v) => {
+		self.get_image_view_handle(v).map(|handle| {
+		    unsafe {
+			self.device.object_name(handle, label);
+		    }
+		});
+	    }
+	}
     }
 
     /// Delete all images and views.

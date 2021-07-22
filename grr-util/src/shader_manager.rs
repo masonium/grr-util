@@ -125,6 +125,18 @@ struct Pipeline {
     pipeline: Cell<grr::Pipeline>,
     pipeline_type: PipelineType,
     shaders: Vec<ShaderDesc>,
+
+    /// Internal name for underlying grr::Pipeline (e.g. OpenGL program).
+    base_name: Option<String>,
+
+    /// Reload count, for naming pipelines when provided.
+    iteration: usize,
+}
+
+impl Pipeline {
+    fn name(&self) -> Option<String> {
+	self.base_name.as_ref().map(|s| format!("{} RL{}", s, self.iteration))
+    }
 }
 
 #[derive(Error, Debug, Clone)]
@@ -278,6 +290,8 @@ impl<'d> ShaderManager<'d> {
                     shaders: shaders.to_vec(),
                     pipeline: Cell::new(p),
                     pipeline_type,
+		    base_name: None,
+		    iteration: 0
                 })
             })
     }
@@ -305,6 +319,11 @@ impl<'d> ShaderManager<'d> {
                 self.load_pipeline(&pipeline.shaders, Some(pipeline.pipeline_type));
             if let Ok((new_p, _)) = new_pipeline_raw {
                 pipeline.pipeline.replace(new_p);
+		if let Some(name) = pipeline.name() {
+		    unsafe {
+			self.device.object_name(new_p, &name);
+		    }
+		}
             }
         }
     }
@@ -327,7 +346,7 @@ impl<'d> ShaderManager<'d> {
         descs.iter().any(|x| !ptype.is_compatible(x.stage))
     }
 
-    /// return a handle to the raw grr::Pipeline
+    /// Return a handle to the raw grr::Pipeline
     pub fn pipeline_handle(&self, pipeline: ManagedPipeline) -> Option<grr::Pipeline> {
         self.pipelines.get(pipeline).map(|s| s.pipeline.get())
     }
@@ -343,6 +362,18 @@ impl<'d> ShaderManager<'d> {
         }
     }
 
+    /// Assign a name to the underlying OpenGL Program object, for debugging purposes.
+    ///
+    /// Names of reloaded pipelines are preserved, modulo a -RL# tag
+    /// to indicate the reload iteration count.
+    pub fn assign_label(&mut self, pipeline: ManagedPipeline, label: &str) {
+        if let Some(p) = self.pipelines.get_mut(pipeline) {
+	    p.base_name = Some(label.to_string());
+	    unsafe {
+		self.device.object_name(p.pipeline.get(), &p.name().unwrap());
+	    }
+	}
+    }
     /// Bind the pipeline.
     pub fn bind_pipeline(&self, pipeline: ManagedPipeline) -> Result<(), Error> {
         self.map_pipeline(pipeline, |p| unsafe {

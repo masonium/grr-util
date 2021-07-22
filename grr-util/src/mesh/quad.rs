@@ -83,22 +83,60 @@ pub struct InstancedQuad<'device, T: GrrVertex> {
     instance_buffer: Buffer,
     num_instances: u32,
     capacity_instances: u32,
+    num_prims: u32,
     //instances: Vec<T>,
     varr: VertexArray,
     device: &'device Device,
     _data: PhantomData<T>,
 }
 
+/// Produce vertex (position) and index data for a 2D quadrilateral with coordinates [-1, 1]^2.
+fn quad_data(num_segments: u32) -> (Vec<f32>, Vec<u32>) {
+    let r = 2.0 / num_segments as f32;
+    let coords: Vec<f32> = (0..num_segments+1).map(|i| -1.0 + i as f32 * r).collect();
+
+    let mut pos_data = Vec::with_capacity(((num_segments+1) * (num_segments+1) * 2) as usize);
+    // add vertices from bottom to top, left-to-right.
+    for y in &coords {
+	for x in &coords {
+	    pos_data.push(*x);
+	    pos_data.push(*y);
+	}
+    }
+    // now construct the index data
+    let mut indices = Vec::with_capacity((num_segments * num_segments * 6) as usize);
+
+    for j in 0..num_segments {
+	let base = j * (num_segments + 1);
+	let row = num_segments + 1;
+	for i in 0..num_segments {
+	    indices.push(base + i);
+	    indices.push(base + i + 1);
+	    indices.push(base + i + row);
+	    indices.push(base + i + row);
+	    indices.push(base + i + 1);
+	    indices.push(base + i + row + 1);
+	}
+    }
+
+    (pos_data, indices)
+}
+
 impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
-    pub fn new(device: &'device grr::Device, num_instances_init: u32) -> Result<Self, grr::Error> {
-        let pos_data = vec![-1.0_f32, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
+    /// Create a quad consisting of n seqgments per side as triangles.
+    pub fn new(device: &'device grr::Device, 
+	       num_segments: u32,
+	       num_instances_init: u32) -> Result<Self, grr::Error> {
+	let (pos_data, indices) = quad_data(num_segments);
+        //let pos_data = vec![-1.0_f32, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
+
         let vbuff = unsafe {
             device
                 .create_buffer_from_host(grr::as_u8_slice(&pos_data), grr::MemoryFlags::empty())?
         };
         let ibuff = unsafe {
             device.create_buffer_from_host(
-                grr::as_u8_slice(&[0u32, 2, 1, 0, 3, 2]),
+                grr::as_u8_slice(&indices),
                 grr::MemoryFlags::empty(),
             )?
         };
@@ -147,6 +185,7 @@ impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
             instance_buffer: instbuff,
             num_instances: num_instances_init,
             capacity_instances: num_instances_init,
+	    num_prims: indices.len() as u32,
             varr,
             device,
             _data: PhantomData {},
@@ -160,7 +199,7 @@ impl<'device, T: GrrVertex> InstancedQuad<'device, T> {
             self.device.draw_indexed(
                 grr::Primitive::Triangles,
                 grr::IndexTy::U32,
-                0..6,
+                0..self.num_prims,
                 0..self.num_instances,
                 0,
             );
